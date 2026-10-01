@@ -1,0 +1,55 @@
+# NeuroStage Configuration
+# ========================
+
+data:
+  root_dir: "alz_dataset/Data"
+  image_size: 224
+  num_classes: 4
+  split_ratios:
+    train: 0.80
+    val: 0.10
+    test: 0.10
+  seed: 42
+
+model:
+  backbone: "efficientnet_b0"
+  pretrained: true
+  head:
+    hidden_dim: 256
+    dropout_1: 0.4
+    dropout_2: 0.2
+  weights_path: "model/best_model.pt"
+
+training:
+  epochs: 25
+  batch_size: 32
+  num_workers: 4
+  optimizer:
+    name: "adamw"
+    backbone_lr: 3.0e-4
+    head_lr: 1.0e-3
+    weight_decay: 1.0e-4
+  scheduler:
+    name: "cosine"
+    warmup_epochs: 2
+  early_stopping:
+    patience: 5
+    metric: "macro_f1"
+    mode: "max"
+  mixed_precision: true
+  use_weighted_sampler: true
+  use_class_weights: true
+
+inference:
+  max_latency_seconds: 4.0
+  low_confidence_threshold: 0.60
+  urgent_stage: 3
+
+app:
+  title: "🧠 NeuroStage — Alzheimer's MRI Staging"
+  page_icon: "🧠"
+  layout: "wide"
+  disclaimer: >
+    ⚠️ Educational and research use only — this is NOT a medical device
+    and should NOT be used for clinical diagnosis. Always consult a
+    qualified healthcare professional for medical decisions.
