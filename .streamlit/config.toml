@@ -1,0 +1,39 @@
+# NeuroStage Dark Theme
+# Medical/neuroscience-focused dark theme with green/red severity accents
+[theme]
+base = "dark"
+primaryColor = "#60a5fa"
+backgroundColor = "#0d1117"
+secondaryBackgroundColor = "#161b22"
+codeBackgroundColor = "#161b22"
+textColor = "#e6edf3"
+linkColor = "#79c0ff"
+borderColor = "#21262d"
+showWidgetBorder = true
+showSidebarBorder = true
+baseRadius = "10px"
+buttonRadius = "10px"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+codeFontSize = "0.85rem"
+codeTextColor = "#e4e4e7"
+baseFontSize = 14
+baseFontWeight = 400
+headingFontSizes = ["32px", "24px", "20px", "16px", "14px", "12px"]
+headingFontWeights = [700, 600, 600, 500, 500, 500]
+linkUnderline = false
+chartCategoricalColors = ["#22c55e", "#eab308", "#f97316", "#ef4444", "#60a5fa", "#a78bfa", "#f472b6"]
+
+# Semantic colors for stage severity
+greenColor = "#22c55e"
+yellowColor = "#eab308"
+orangeColor = "#f97316"
+redColor = "#ef4444"
+blueColor = "#60a5fa"
+violetColor = "#a78bfa"
+
+[theme.sidebar]
+backgroundColor = "#010409"
+secondaryBackgroundColor = "#0d1117"
+codeBackgroundColor = "#0d1117"
+borderColor = "#21262d"

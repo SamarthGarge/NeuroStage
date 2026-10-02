@@ -4,25 +4,14 @@ NeuroStage — Alzheimer's MRI Staging Web Application
 AI-powered web application that analyzes axial T1-weighted brain MRI scans
 and classifies the patient's dementia stage on a 4-point clinical scale.
 
-Features:
-- Upload & quality gate for brain MRI scans
-- EfficientNet-B0 inference with cached model loading
-- Stage label + plain-language description
-- Confidence score + probability distribution
-- Grad-CAM heatmap highlighting atrophy-affected regions
-- Progression timeline stepper
-- Triage recommendation banners
-- Neuroanatomical interpretation guide
-- Inference latency & scan metadata
-
 Usage:
     streamlit run app.py
 """
 
-import time
+import json
 
 import streamlit as st
-import yaml
+from streamlit_lottie import st_lottie
 
 from components.uploader import render_uploader
 from components.inference import load_model, preprocess_image, predict
@@ -52,10 +41,36 @@ st.set_page_config(
 
 
 # ──────────────────────────────────────────────────────────────────────
+# Load Lottie animation (cached)
+# ──────────────────────────────────────────────────────────────────────
+
+@st.cache_data
+def load_lottie_brain():
+    """Load the brain Lottie animation from assets."""
+    with open("assets/Brain.json", "r") as f:
+        return json.load(f)
+
+
+lottie_brain = load_lottie_brain()
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Session state initialization
+# ──────────────────────────────────────────────────────────────────────
+
+st.session_state.setdefault("analysis_result", None)
+st.session_state.setdefault("analysis_image", None)
+st.session_state.setdefault("gradcam_data", None)
+
+
+# ──────────────────────────────────────────────────────────────────────
 # Sidebar
 # ──────────────────────────────────────────────────────────────────────
 
 with st.sidebar:
+    # Lottie brain animation at the top
+    st_lottie(lottie_brain, height=180, key="brain_lottie")
+
     st.header("NeuroStage", icon=":material/neurology:")
     st.caption("Alzheimer's disease staging from MRI")
 
@@ -68,141 +83,156 @@ with st.sidebar:
         )
 
     with st.expander("Staging scale", icon=":material/bar_chart:"):
+        badge_colors = {0: "green", 1: "yellow", 2: "orange", 3: "red"}
         for stage_id, label in STAGE_LABELS.items():
-            color = STAGE_COLORS[stage_id]
-            st.markdown(
-                f":{color.replace('#', '')}[**Stage {stage_id}**] — {label}"
-            )
+            st.badge(f"Stage {stage_id} — {label}", color=badge_colors[stage_id])
             st.caption(STAGE_DESCRIPTIONS[stage_id]["plain"])
 
     with st.expander("How it works", icon=":material/science:"):
         st.markdown("""
-        1. **Upload** an axial brain MRI slice
-        2. **Quality gate** validates it's a brain scan
-        3. **Preprocessing**: grayscale→RGB, resize to 224², normalize
-        4. **Inference**: EfficientNet-B0 classifies into 4 stages
-        5. **Grad-CAM**: highlights regions driving the prediction
-        6. **Triage**: recommends next clinical steps
+1. **Upload** an axial brain MRI slice
+2. **Quality gate** validates it's a brain scan
+3. **Preprocessing** — grayscale → RGB, resize to 224², normalize
+4. **Inference** — EfficientNet-B0 classifies into 4 stages
+5. **Grad-CAM** — highlights regions driving the prediction
+6. **Triage** — recommends next clinical steps
         """)
 
     with st.expander("Technical details", icon=":material/settings:"):
         st.markdown("""
-        - **Model**: EfficientNet-B0 (~5.7M params)
-        - **Input**: 3×224×224 (grayscale→RGB)
-        - **Training**: AdamW, cosine scheduler, class-weighted CE
-        - **Imbalance**: WeightedRandomSampler + class weights
-        - **Explainability**: Grad-CAM on final conv block
-        - **Privacy**: Zero data persistence (in-memory only)
+- **Model** — EfficientNet-B0 (~5.7M params)
+- **Input** — 3 × 224 × 224 (grayscale → RGB)
+- **Training** — AdamW, cosine scheduler, class-weighted CE
+- **Imbalance** — WeightedRandomSampler + class weights
+- **Explainability** — Grad-CAM on final conv block
+- **Privacy** — Zero data persistence (in-memory only)
         """)
 
-    st.caption("Made with :heart: for neuroscience research")
 
 
 # ──────────────────────────────────────────────────────────────────────
 # Main content
 # ──────────────────────────────────────────────────────────────────────
 
-# Header
 st.title("NeuroStage", icon=":material/neurology:")
 st.caption("AI-powered Alzheimer's disease staging from brain MRI scans")
 
-# Layout: left column for upload, right column for results
-col_upload, col_results = st.columns([1, 2], gap="large")
 
-with col_upload:
-    # Upload section
-    image = render_uploader()
+# ── Upload section ──
 
-    if image is not None:
+image = render_uploader()
+
+if image is not None:
+    # Show uploaded image and analyze button in a compact row
+    col_preview, col_action = st.columns([1, 2], vertical_alignment="center")
+
+    with col_preview:
         st.image(image, caption="Uploaded MRI scan", width="stretch")
 
-        # Analyze button
-        analyze_clicked = st.button(
-            "Analyze scan",
-            icon=":material/biotech:",
-            use_container_width=True,
-            type="primary",
-        )
-    else:
-        analyze_clicked = False
+    with col_action:
+        with st.container(border=True):
+            st.subheader("Ready to analyze", icon=":material/biotech:")
+            st.markdown(
+                "The scan has passed the quality gate and is ready for "
+                "AI-powered staging analysis."
+            )
+            analyze_clicked = st.button(
+                "Analyze scan",
+                icon=":material/play_arrow:",
+                type="primary",
+                key="analyze_btn",
+            )
 
-        # Show placeholder when no image is uploaded
-        with st.container(border=True, horizontal_alignment="center"):
-            st.space("medium")
-            st.markdown(":material/neurology:")
-            st.caption("Upload a brain MRI scan to get started")
-            st.space("medium")
-
-with col_results:
-    if image is not None and analyze_clicked:
-        with st.spinner("Loading model and running inference..."):
-            # Load cached model
+    # Run analysis
+    if analyze_clicked:
+        with st.status(
+            "Running analysis...", expanded=True, state="running"
+        ) as status:
+            st.write("Loading model...")
             model, device = load_model()
 
-            # Preprocess
+            st.write("Preprocessing image...")
             input_tensor, rgb_array = preprocess_image(image)
 
-            # Predict
+            st.write("Running inference...")
             result = predict(model, input_tensor, device)
 
-        # ── Results dashboard ──
-
-        # 1. Stage timeline
-        st.subheader("Disease progression timeline", icon=":material/timeline:")
-        render_timeline(result["stage"], result["confidence"])
-
-        # 2. Stage card
-        render_stage_card(
-            result["stage"],
-            result["confidence"],
-            result["description"],
-        )
-
-        # 3. Triage banner
-        render_triage_banner(result["triage"], result["low_confidence"])
-
-        # 4. Probability distribution
-        render_probability_chart(result["probabilities"])
-
-        # 5. Grad-CAM visualization
-        with st.spinner("Generating Grad-CAM heatmap..."):
+            st.write("Generating Grad-CAM heatmap...")
             heatmap, overlay, original_resized = generate_gradcam_from_pil(
                 model, image, result["stage"], device
             )
-        render_gradcam_views(original_resized, heatmap, overlay)
 
-        # 6. Anatomy guide
+            # Store in session state
+            st.session_state["analysis_result"] = result
+            st.session_state["analysis_image"] = image
+            st.session_state["gradcam_data"] = (heatmap, overlay, original_resized)
+
+            status.update(label="Analysis complete", state="complete", expanded=False)
+
+    # ── Results dashboard ──
+
+    result = st.session_state.get("analysis_result")
+    gradcam_data = st.session_state.get("gradcam_data")
+
+    if result is not None and gradcam_data is not None:
+        st.header("Results", icon=":material/analytics:")
+
+        # 1. Stage timeline
+        render_timeline(result["stage"], result["confidence"])
+
+        # 2. Stage card + triage side by side
+        col_stage, col_triage = st.columns([3, 2], gap="medium")
+
+        with col_stage:
+            render_stage_card(
+                result["stage"],
+                result["confidence"],
+                result["description"],
+            )
+
+        with col_triage:
+            with st.container(border=True, height="stretch"):
+                st.subheader("Triage recommendation", icon=":material/emergency:")
+                render_triage_banner(result["triage"], result["low_confidence"])
+
+        # 3. Probability distribution + Grad-CAM side by side
+        col_chart, col_gradcam = st.columns(2, gap="medium")
+
+        with col_chart:
+            with st.container(border=True, height="stretch"):
+                render_probability_chart(result["probabilities"])
+
+        with col_gradcam:
+            with st.container(border=True, height="stretch"):
+                heatmap, overlay, original_resized = gradcam_data
+                render_gradcam_views(original_resized, heatmap, overlay)
+
+        # 4. Anatomy guide + metadata
         render_anatomy_guide(result["stage"])
 
-        # 7. Metadata
-        st.space("medium")
-        render_metadata(
-            result["inference_time_ms"],
-            (224, 224),
-        )
+        render_metadata(result["inference_time_ms"], (224, 224))
 
-    elif image is not None and not analyze_clicked:
-        st.info(
-            "Click **Analyze scan** to run the AI staging assessment.",
-            icon=":material/touch_app:",
-        )
+else:
+    # ── Welcome state (no image uploaded) ──
 
-    else:
-        # Welcome message when no image
-        with st.container(border=True, horizontal_alignment="center"):
-            st.space("large")
+    st.space("medium")
+
+    with st.container(horizontal_alignment="center"):
+        with st.container(border=True):
             st.subheader("Welcome to NeuroStage", icon=":material/neurology:")
             st.markdown(
-                "Upload an axial brain MRI scan to receive an AI-powered "
+                "Upload an axial brain MRI scan above to receive an AI-powered "
                 "dementia staging assessment with explainable Grad-CAM "
                 "attention maps and clinical triage recommendations."
             )
+
             with st.container(horizontal=True, horizontal_alignment="center"):
                 st.badge("Stage 0: Non-demented", color="green")
                 st.badge("Stage 1: Very mild", color="yellow")
                 st.badge("Stage 2: Mild", color="orange")
                 st.badge("Stage 3: Moderate", color="red")
-            st.space("large")
+
 
 # ── Disclaimer footer ──
+st.space("medium")
 render_disclaimer()

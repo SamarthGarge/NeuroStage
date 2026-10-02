@@ -116,22 +116,21 @@ def render_gradcam_views(
         overlay: Blended overlay array (H, W, 3), uint8
     """
     st.subheader("Grad-CAM attention map", icon=":material/biotech:")
-    st.caption(
-        "Highlights the brain regions the model focused on. "
-        "Warmer colors (red/yellow) indicate higher attention."
+    st.caption("Warmer colors (red/yellow) = higher model attention")
+
+    view_mode = st.segmented_control(
+        "View",
+        ["Original", "Heatmap", "Overlay"],
+        default="Overlay",
+        label_visibility="collapsed",
+        key="gradcam_view",
     )
 
-    tab1, tab2, tab3 = st.tabs([
-        ":material/image: Original",
-        ":material/thermostat: Heatmap",
-        ":material/layers: Overlay",
-    ])
-
-    with tab1:
+    if view_mode == "Original":
         st.image(original, caption="Uploaded MRI scan", width="stretch")
-    with tab2:
+    elif view_mode == "Heatmap":
         st.image(heatmap, caption="Grad-CAM heatmap", width="stretch")
-    with tab3:
+    else:
         st.image(overlay, caption="Blended overlay (50/50)", width="stretch")
 
 

@@ -22,9 +22,6 @@ env/
 .DS_Store
 Thumbs.db
 
-# Model weights (large files)
-model/*.pt
-model/*.pth
 
 # Data (don't commit dataset)
 alz_dataset/
@@ -34,8 +31,6 @@ model/confusion_matrix.png
 runs/
 wandb/
 
-# Streamlit
-.streamlit/
 
 # Jupyter
 .ipynb_checkpoints/

@@ -9,7 +9,8 @@ AI-powered web application that analyzes axial T1-weighted brain MRI scans and c
 ## ✨ Features
 
 - **4-Stage Classification** — Non-Demented, Very Mild, Mild, Moderate Dementia
-- **Grad-CAM Explainability** — Heatmaps highlighting atrophy-affected brain regions
+- **Grad-CAM Explainability** — Background-masked heatmaps highlighting atrophy-affected brain regions
+- **Modern Dashboard UI** — Side-by-side layout, native dark theme, and Lottie animations
 - **Progression Timeline** — Visual stepper showing disease stage positioning
 - **Clinical Triage** — Automated recommendations (routine → urgent referral)
 - **Plain-Language Mode** — Descriptions for non-clinical users
@@ -31,16 +32,20 @@ EfficientNet-B0 (ImageNet pretrained)
 
 ## 📁 Project Structure
 
-```
+```text
 NeuroStage/
 ├── app.py                  # Streamlit web application
 ├── train.py                # Model training pipeline
 ├── config.yaml             # Configuration (hyperparams, paths)
 ├── requirements.txt        # Python dependencies
+├── .streamlit/
+│   └── config.toml         # Custom dark theme configuration
+├── assets/
+│   └── Brain.json          # Sidebar Lottie animation
 ├── components/
 │   ├── uploader.py         # File upload + quality gate
 │   ├── inference.py        # Model loading + prediction
-│   ├── explain.py          # Grad-CAM generation
+│   ├── explain.py          # Grad-CAM generation with masking
 │   ├── timeline.py         # Stage progression stepper
 │   └── report.py           # Results dashboard
 ├── model/
@@ -136,4 +141,6 @@ Derived from OASIS-1 (Open Access Series of Imaging Studies). Alzheimer's MRI Da
 
 ## 📄 License
 
-Research and educational use only.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+> ⚠️ **Note:** While the code is MIT licensed, the application itself is for educational and research purposes only. It is NOT a medical device and should not be used for clinical diagnosis.

@@ -22,6 +22,7 @@ seaborn>=0.12.0
 
 # Web App
 streamlit>=1.30.0
+streamlit-lottie>=0.0.3
 plotly>=5.15.0
 
 # Configuration
